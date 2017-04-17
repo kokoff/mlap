@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+import argparse
+import os
+
+from code.task1 import task1
+from code.task2 import task2
+from code.task3 import task3
+
+
+def main():
+
+    parser = argparse.ArgumentParser(description='mlap_prog')
+    parser.add_argument('task_num', action='store', choices=[1, 2, 3], type=int,
+                        help='Task number: 1,2 or 3')
+    parser.add_argument('input_file', action='store',
+                        help='Path to input file')
+
+    args = parser.parse_args()
+    task_num = args.task_num
+    input_file = args.input_file
+
+    if not os.path.exists(input_file):
+        print("Input file doesn't exist!")
+        return
+
+    if task_num is 1:
+        task1(input_file)
+    elif task_num is 2:
+        task2(input_file)
+    elif task_num is 3:
+        task3(input_file)
+    else:
+        print "Unknown task number should be 1,2 or 3!"
+
+
+if __name__ == '__main__':
+    main()
