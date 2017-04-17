@@ -2,9 +2,12 @@ import os
 
 
 def task1(input_file):
-    print "task1 " + input_file
-    return
+    lines = []
+    with open(input_file, 'r') as f:
+        lines = f.readlines()
 
+    for i in lines:
+        print i,
 
 if __name__ == '__main__':
     input_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'data', 'task1.dat')
