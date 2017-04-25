@@ -43,7 +43,7 @@ def task1(input_file):
             else:
                 print 1
 
-    transition_from_count = [[i for i in pizza] for pizza in state_visit_count]
+    transition_from_count = [[i for i in j] for j in state_visit_count]
     for ep in episodes:
         transition_from_count[ep[-1][0]][ep[-1][1]] -= 1
 
