@@ -37,7 +37,7 @@ class HMM:
             self.emission = [[random.random() for i in range(self.hidden_states)] for j in range(self.visible_states)]
         else:
             self.initial = [1.0 / self.hidden_states for i in range(self.hidden_states)]
-            self.transition = [[1.0 / self.hidden_states for i in range(self.hidden_states)] for j in
+            self.transition = [[1.0/8 for i in range(7)] + [1.0/72 for i in range(9)] for j in
                                range(self.hidden_states)]
             self.emission = [[1.0 / self.visible_states for i in range(self.hidden_states)] for j in
                              range(self.visible_states)]
@@ -126,15 +126,15 @@ class HMM:
             summation = 0
 
             for state in range(N):
-                summation += math.exp(episode[T-1][state])
+                episode[T-1][state]
+                summation += episode[T-1][state]
 
-            likelihood += math.log(summation/ E)
+            likelihood += math.log(summation)
         return likelihood
 
     def forward(self, episodes):
         N = self.hidden_states  # Number of hidden states
         alpha = []
-        loglik = 0
 
         for episode in episodes:
             T = len(episode)  # Length of episode
@@ -142,16 +142,17 @@ class HMM:
 
             # Calculate alpha(h1)
             for state in range(N):
-                F[0][state] = math.log(self.emission[episode[0]][state] * self.initial[state])
+                F[0][state] = self.emission[episode[0]][state] * self.initial[state]
+
 
             # Calculate alpha(ht)
             for t in range(1, T):
                 for state in range(N):
                     summation = 0
                     for lastState in range(N):
-                        summation += self.transition[state][lastState] * math.exp(F[t - 1][lastState])
+                        summation += self.transition[state][lastState] * F[t - 1][lastState]
 
-                    F[t][state] = math.log(self.emission[episode[t]][state] * summation)
+                    F[t][state] = self.emission[episode[t]][state] * summation
 
             alpha.append(F)
 
@@ -175,8 +176,9 @@ class HMM:
                     summation = 0
                     for state in range(N):
                         summation += self.emission[episode[t]][state] * self.transition[state][previousState] * \
-                                     math.exp(F[t][state])
-                    F[t - 1][previousState] = math.log(summation)
+                                     F[t][state]
+                    F[t - 1][previousState] = summation
+
             beta.append(F)
         return beta
 
@@ -233,6 +235,7 @@ class HMM:
                                                      beta[ep_num][t + 1][nextState] / summation
                         except ZeroDivisionError:
                             F[t][state][nextState] = 0
+
             xi.append(F)
         return xi
 
@@ -274,23 +277,27 @@ class HMM:
 
         for ep_num in range(E):
             T = len(episodes[ep_num])  # Length of episode
-            statesums = [0 for i in range(N)]
-            newemmission = [[0 for i in range(N)] for j in range(3)]
+            statesums = [[0 for i in range(T)] for j in range(N)]
+            newemmission = [[0 for i in range(N)] for j in range(self.visible_states)]
 
             for t in range(T):
                 for state in range(N):
-                    statesums[state] += gamma[ep_num][t][state]
+                    statesums[state][t] += gamma[ep_num][t][state]
 
             for t in range(T):
                 for state in range(N):
                     try:
-                        newemmission[episodes[ep_num][t]][state] += gamma[ep_num][t][state] / statesums[state]
+                        newemmission[episodes[ep_num][t]][state] += gamma[ep_num][t][state]
                     except ZeroDivisionError:
                         newemmission[episodes[ep_num][t]][state] = 0
 
             for i in range(len(newemmission)):
                 for j in range(len(newemmission[i])):
-                    self.emission[i][j] += newemmission[i][j] / E
+                    self.emission[i][j] += newemmission[i][j]
+
+        for state in range(len(newemmission[i])):
+            for v in range(len(newemmission)):
+                self.emission[v][state] = self.emission[v][state] / (sum(statesums[state])) /E
 
     def baum_welch(self, episodes, verbouse=False):
         iteration = 0
