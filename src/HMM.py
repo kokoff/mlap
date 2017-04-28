@@ -4,11 +4,6 @@ import re
 import sys
 import math
 
-coordinates = {0: (0, 0), 1: (0, 1), 2: (0, 2), 3: (0, 3),
-               4: (1, 0), 5: (1, 1), 6: (1, 2), 7: (1, 3),
-               8: (2, 0), 9: (2, 1), 10: (2, 2), 11: (2, 3),
-               12: (3, 0), 13: (3, 1), 14: (3, 2), 15: (3, 3)}
-
 
 def read_file(input_file):
     episodes = []
@@ -32,7 +27,7 @@ def read_file(input_file):
 
 
 class HMM:
-    def __init__(self, rand_init=True, restricted_states=False, number_of_hidden_states=16, number_of_visible_states=3):
+    def __init__(self, rand_init=True, restricted_transitions=False, walls=[], number_of_hidden_states=16, number_of_visible_states=3):
         self.hidden_states = number_of_hidden_states
         self.visible_states = number_of_visible_states
         self.likelihood = 0
@@ -49,7 +44,7 @@ class HMM:
             self.emission = [[1.0 / self.visible_states for i in range(self.hidden_states)] for j in
                              range(self.visible_states)]
 
-        if restricted_states:
+        if restricted_transitions:
             self.transition = [[0.0 for i in range(self.hidden_states)] for j in
                                range(self.hidden_states)]
 
@@ -58,7 +53,7 @@ class HMM:
 
                     pos = x * 4 + y
                     neighbours = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
-                    forbidden = [(1, 5), (2, 6), (4, 8), (6, 10), (7, 11), (13, 14)]
+                    forbidden = walls
                     neighbour_ok = []
 
                     for n in neighbours:
@@ -69,7 +64,7 @@ class HMM:
                     norm = len(neighbour_ok) + 1
 
                     for n in neighbour_ok:
-                        prob = 1.0/norm if not rand_init else random.random()
+                        prob = 1.0 / norm if not rand_init else random.random()
                         self.transition[n[0] * 4 + n[1]][pos] = 1.0 / norm
 
                     self.transition[pos][pos] = 1.0 / norm
@@ -129,7 +124,7 @@ class HMM:
     def forward(self, episodes):
         N = self.hidden_states  # Number of hidden states
         alpha = []
-        loglik = 0  # Log-Likelihood
+        loglik = 0  # Average Log-Likelihood for each episode
 
         for episode in episodes:
             T = len(episode)  # Length of episode
@@ -173,7 +168,7 @@ class HMM:
                     F[t] = [0 for i in range(N)]
 
             alpha.append(F)
-            loglik = sumAlpha
+            loglik += sumAlpha / len(episodes)
 
         return alpha, loglik
 
@@ -202,7 +197,7 @@ class HMM:
                 try:
                     F[t - 1] = [i / sum(F[t - 1]) for i in F[t - 1]]
                 except ZeroDivisionError:
-                    F[t-1] = [0 for i in range(N)]
+                    F[t - 1] = [0 for i in range(N)]
 
             beta.append(F)
         return beta
@@ -322,13 +317,13 @@ class HMM:
                 except ZeroDivisionError:
                     self.emission[row][col] = 0.0
 
-    def baum_welch(self, episodes, verbouse=False, tolerance=0.01):
+    def baum_welch(self, episodes, verbouse=False, tolerance=0.01000000):
         iteration = 0
         alpha, self.likelihood = self.forward(episodes)
-        oldLikelihood = self.likelihood + 2*tolerance
+        oldLikelihood = self.likelihood + 2 * tolerance
 
         if verbouse:
-            print 'Initial'
+            print '\nInitial Parameters:'
             print self.__str__()
             print 'Log-Likelihood', self.likelihood
             print '-' * 135
@@ -351,22 +346,24 @@ class HMM:
 
             if verbouse:
                 print self.__str__()
-                print 'Iteration:', iteration,'\n', 'Log-Likelihood', self.likelihood
+                print 'Iteration:', iteration, '\n', 'Log-Likelihood', self.likelihood
                 print '-' * 135
             else:
                 print 'Iteration:', iteration, '\t\t', 'Log-Likelihood', self.likelihood
 
-        return iteration
+        return iteration, self.likelihood
 
 
 def main(input_file):
     print 'Task2'
     print 'Input fille is:', input_file
     episodes = read_file(input_file)
-    hmm = HMM(rand_init=True, restricted_states=False)
-    iterations = hmm.baum_welch(episodes, True)
-    #print hmm
-    #print 'Total number of iterations:', iterations,'\t\t\t', 'Final Log-Likelihood:', hmm.likelihood
+    walls = [(1, 5), (2, 6), (4, 8), (6, 10), (7, 11), (13, 14)]
+    hmm = HMM(rand_init=False, restricted_transitions=True, walls=walls)
+    verbose = False
+    hmm.baum_welch(episodes, verbose)
+    if not verbose:
+        print hmm
 
 
 if __name__ == '__main__':
