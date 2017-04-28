@@ -3,6 +3,7 @@ import random
 import re
 import sys
 import math
+from fractions import Fraction
 
 
 def read_file(input_file):
@@ -27,10 +28,11 @@ def read_file(input_file):
 
 
 class HMM:
-    def __init__(self, rand_init=True, restricted_transitions=False, walls=[], number_of_hidden_states=16, number_of_visible_states=3):
+    def __init__(self, rand_init=True, restricted_transitions=False, walls=[], number_of_hidden_states=16, number_of_visible_states=3, use_fractions=False):
         self.hidden_states = number_of_hidden_states
         self.visible_states = number_of_visible_states
         self.likelihood = 0
+        self.__use_fractions = use_fractions
 
         if rand_init:
             self.initial = [random.random() for i in range(self.hidden_states)]
@@ -70,7 +72,10 @@ class HMM:
                     self.transition[pos][pos] = 1.0 / norm
 
     def _prob_repr(self, prob):
-        return str(round(float(prob), 4))
+        if self.__use_fractions:
+            return str(Fraction(prob).limit_denominator()) + '  '
+        else:
+            return str(round(float(prob), 4))
 
     def __str__(self):
         DASHES = 135
@@ -327,10 +332,8 @@ class HMM:
             print self.__str__()
             print 'Log-Likelihood', self.likelihood
             print '-' * 135
-        else:
-            print 'Initial', '\t\t', 'Log-Likelihood', self.likelihood
 
-        while abs(self.likelihood - oldLikelihood) > tolerance:
+        while abs(self.likelihood - oldLikelihood) >= tolerance:
             if verbouse:
                 print
 
