@@ -7,7 +7,7 @@ def task2(input_file):
     print 'Task2'
     print 'Input fille is:', input_file, '\n'
     episodes = read_file(input_file)
-    hmm = HMM(False)
+    hmm = HMM(rand_init=False)
     hmm.baum_welch(episodes)
     print hmm
 
@@ -16,4 +16,4 @@ if __name__ == '__main__':
     if not os.path.exists(input_file):
         print("Input file doesn't exist!")
     else:
-        task3(input_file)
+        task2(input_file)

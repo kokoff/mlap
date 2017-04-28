@@ -17,4 +17,4 @@ if __name__ == '__main__':
     if not os.path.exists(input_file):
         print("Input file doesn't exist!")
     else:
-        task3(input_file)
+        task4(input_file)
