@@ -27,19 +27,77 @@ def read_file(input_file):
     return episodes
 
 
+def normalise_cond_prob(cond_prob, norm=None):
+    rows = len(cond_prob)
+    cols = len(cond_prob[0])
+
+    if not norm:
+        # Compute normalisation factor
+        norm = [0 for i in range(cols)]
+        for i in range(rows):
+            for j in range(cols):
+                norm[j] += cond_prob[i][j]
+
+    # Compute probabilities
+    for i in range(rows):
+        for j in range(cols):
+            if norm[j] != 0:
+                cond_prob[i][j] /= norm[j]
+            else:
+                cond_prob[i][j] = 0.0
+
+    return cond_prob
+
+
+def normalise_marginal_prob(prob, norm=None):
+    if not norm:
+        # Compute normalisation factor
+        norm = sum(prob)
+
+    # Compute probabilities
+    if norm != 0:
+        prob = [i / norm for i in prob]
+    else:
+        prob = [0.0 for i in prob]
+
+    return prob
+
+
+def normalise_joint_prob(prob, norm=None):
+    rows = len(prob)
+    cols = len(prob[0])
+
+    if not norm:
+        # Compute normalisation factor
+        norm = sum([prob[i][j] for i in range(rows) for j in range(cols)])
+
+    # Compute probabilities
+    for i in range(rows):
+        for j in range(cols):
+            if norm != 0:
+                prob[i][j] = prob[i][j] / norm
+            else:
+                prob[i][j] = 0.0
+
+    return prob
+
+
 class HMM:
     def __init__(self, rand_init=True, restricted_transitions=False, walls=[], number_of_hidden_states=16,
-                 number_of_visible_states=3, use_fractions=False):
+                 number_of_visible_states=3):
         self.hidden_states = number_of_hidden_states
         self.visible_states = number_of_visible_states
         self.likelihood = 0
-        self.__use_fractions = use_fractions
 
         if rand_init:
             self.initial = [random.random() for i in range(self.hidden_states)]
-            self.transition = [[random.random() for i in range(self.hidden_states)] for j in range(self.hidden_states)]
-            self.emission = [[random.random() for i in range(self.hidden_states)] for j in range(self.visible_states)]
+            self.initial = normalise_marginal_prob(self.initial)
 
+            self.transition = [[random.random() for i in range(self.hidden_states)] for j in range(self.hidden_states)]
+            self.transition = normalise_cond_prob(self.transition)
+
+            self.emission = [[random.random() for i in range(self.hidden_states)] for j in range(self.visible_states)]
+            self.emission = normalise_cond_prob(self.emission)
         else:
             self.initial = [1.0 / self.hidden_states for i in range(self.hidden_states)]
             self.transition = [[1.0 / self.hidden_states for i in range(self.hidden_states)] for j in
@@ -68,15 +126,12 @@ class HMM:
 
                     for n in neighbour_ok:
                         prob = 1.0 / norm if not rand_init else random.random()
-                        self.transition[n[0] * 4 + n[1]][pos] = 1.0 / norm
+                        self.transition[n[0] * 4 + n[1]][pos] = prob
 
-                    self.transition[pos][pos] = 1.0 / norm
+            self.transition = normalise_cond_prob(self.transition)
 
     def _prob_repr(self, prob):
-        if self.__use_fractions:
-            return str(Fraction(prob).limit_denominator()) + '  '
-        else:
-            return str(round(float(prob), 4))
+        return str(round(float(prob), 4))
 
     def __str__(self):
         DASHES = 135
@@ -136,46 +191,39 @@ class HMM:
         for episode in episodes:
             T = len(episode)  # Length of episode
             F = [[0 for i in range(N)] for j in range(T)]
-            sumAlpha = 0
+            norm = 0  # Normalisations factor
 
             # Calculate alpha(h1)
             for state in range(N):
                 F[0][state] = self.emission[episode[0]][state] * self.initial[state]
-
-            try:
-                sumAlpha += math.log(sum(F[0]))
-            except ValueError:
-                sumAlpha += 0
+                norm += self.emission[episode[0]][state] * self.initial[state]
 
             # Normalisation to avoid underflow
-            try:
-                F[0] = [i / sum(F[0]) for i in F[0]]
-            except ZeroDivisionError:
-                F[0] = [0 for i in range(N)]
+            F[0] = normalise_marginal_prob(F[0], norm)
+
+            # Calculate log-likelihood
+            loglik += math.log(norm) if norm != 0.0 else 0.0
 
             # Calculate alpha(ht)
             for t in range(1, T):
+                norm = 0  # Normalisations factor
+
                 for state in range(N):
                     summation = 0
                     for lastState in range(N):
                         summation += self.transition[state][lastState] * F[t - 1][lastState]
 
                     F[t][state] = self.emission[episode[t]][state] * summation
-
-                try:
-                    sumAlpha += math.log(sum(F[t]))
-                except ValueError:
-                    print 'Value Error'
-                    sumAlpha += 0
+                    norm += self.emission[episode[t]][state] * summation
 
                 # Normalisation to avoid underflow
-                try:
-                    F[t] = [i / sum(F[t]) for i in F[t]]
-                except ZeroDivisionError:
-                    F[t] = [0 for i in range(N)]
+                F[t] = normalise_marginal_prob(F[t], norm)
+
+                # Calculate log-likelihood
+                loglik += math.log(norm) if norm != 0.0 else 0.0
 
             alpha.append(F)
-            loglik += sumAlpha / E
+        loglik /= E  # Average log-likelihood
 
         return alpha, loglik
 
@@ -193,6 +241,8 @@ class HMM:
 
             # Calculate beta(h(t-1))
             for t in reversed(range(1, T)):
+                norm = 0  # Normalisation factor
+
                 for previousState in range(N):
                     summation = 0
                     for state in range(N):
@@ -200,11 +250,11 @@ class HMM:
                                      F[t][state]
                     F[t - 1][previousState] = summation
 
+                    # Calculate normalisation factor
+                    norm += summation
+
                 # Normalisation to avoid underflow
-                try:
-                    F[t - 1] = [i / sum(F[t - 1]) for i in F[t - 1]]
-                except ZeroDivisionError:
-                    F[t - 1] = [0 for i in range(N)]
+                F[t - 1] = normalise_marginal_prob(F[t - 1], norm)
 
             beta.append(F)
         return beta
@@ -221,16 +271,15 @@ class HMM:
             for t in range(T):
                 norm = 0  # Normalisation factor
 
-                # Calculate normalization factor
                 for state in range(N):
+                    # Calculate p(h(t)|v(1:T))
+                    F[t][state] = alpha[ep_num][t][state] * beta[ep_num][t][state]
+
+                    # Calculate normalisation factor
                     norm += alpha[ep_num][t][state] * beta[ep_num][t][state]
 
-                # Calculate p(h(t)|v(1:T))
-                for state in range(N):
-                    try:
-                        F[t][state] = alpha[ep_num][t][state] * beta[ep_num][t][state] / norm
-                    except ZeroDivisionError:
-                        F[t][state] = 0
+                # Normalisation
+                F[t] = normalise_marginal_prob(F[t], norm)
 
             gamma.append(F)
         return gamma
@@ -247,21 +296,20 @@ class HMM:
             for t in range(T - 1):
                 norm = 0  # Normalisation factor
 
-                # Calculate normalization factor
                 for state in range(N):
                     for nextState in range(N):
-                        norm += alpha[ep_num][t][state] * self.emission[episodes[ep_num][t + 1]][nextState] * \
-                                self.transition[nextState][state] * beta[ep_num][t + 1][nextState]
+                        # Calculate p(h(t),h(t+1)|v(1:T))
+                        F[t][state][nextState] = alpha[ep_num][t][state] * self.transition[nextState][state] * \
+                                                 self.emission[episodes[ep_num][t + 1]][nextState] * \
+                                                 beta[ep_num][t + 1][nextState]
 
-                # Calculate p(h(t),h(t+1)|v(1:T))
-                for state in range(N):
-                    for nextState in range(N):
-                        try:
-                            F[t][state][nextState] = alpha[ep_num][t][state] * self.transition[nextState][state] * \
-                                                     self.emission[episodes[ep_num][t + 1]][nextState] * \
-                                                     beta[ep_num][t + 1][nextState] / norm
-                        except ZeroDivisionError:
-                            F[t][state][nextState] = 0
+                        # Calculate normalization factor
+                        norm += alpha[ep_num][t][state] * self.transition[nextState][state] * \
+                                self.emission[episodes[ep_num][t + 1]][nextState] * \
+                                beta[ep_num][t + 1][nextState]
+
+                # Normalisation
+                F[t] = normalise_joint_prob(F[t], norm)
 
             xi.append(F)
         return xi
@@ -280,7 +328,7 @@ class HMM:
         E = len(gamma)  # Number of episodes
         N = self.hidden_states  # Number of hidden states
         self.transition = [[0 for i in range(N)] for j in range(N)]
-        norm = [0 for i in range(N)]  # Normalisation factor
+        norm = [0 for i in range(N)]  # Normalisation factors
 
         for ep_num in range(E):
             T = len(xi[ep_num])  # Length of episode
@@ -293,19 +341,14 @@ class HMM:
                         norm[state] += xi[ep_num][t][state][nextState]
 
         # Normalisation
-        for row in range(N):
-            for col in range(N):
-                try:
-                    self.transition[row][col] /= norm[col]
-                except ZeroDivisionError:
-                    self.transition[row][col] = 0.0
+        self.transition = normalise_cond_prob(self.transition, norm)
 
     def updateEmission(self, gamma, episodes):
         E = len(gamma)  # Number of episodes
         N = self.hidden_states  # Number of hidden states
         V = self.visible_states  # Number of visible states
         self.emission = [[0 for i in range(N)] for j in range(V)]
-        norm = [0 for i in range(N)]  # Normalisation factor
+        norm = [0 for i in range(N)]  # Normalisation factors
 
         for ep_num in range(E):
             T = len(episodes[ep_num])  # Length of episode
@@ -317,14 +360,9 @@ class HMM:
                     norm[state] += gamma[ep_num][t][state]
 
         # Normalisation
-        for row in range(V):
-            for col in range(N):
-                try:
-                    self.emission[row][col] /= norm[col]
-                except ZeroDivisionError:
-                    self.emission[row][col] = 0.0
+        self.emission = normalise_cond_prob(self.emission, norm)
 
-    def baum_welch(self, episodes, verbouse=False, tolerance=0.01000000):
+    def baum_welch(self, episodes, tolerance=0.01):
         iteration = 0
 
         # first E-step
@@ -334,17 +372,9 @@ class HMM:
         xi = self.getXi(alpha, beta, episodes)
 
         oldLikelihood = self.likelihood + 2 * tolerance
-
-        if verbouse:
-            print '\nInitial Parameters:'
-            print self.__str__()
-            print 'Log-Likelihood', self.likelihood
-            print '-' * 135
+        print 'Initial:', '\t\t', 'Log-Likelihood', self.likelihood
 
         while abs(self.likelihood - oldLikelihood) >= tolerance:
-            if verbouse:
-                print
-
             iteration += 1
             oldLikelihood = self.likelihood
 
@@ -359,32 +389,6 @@ class HMM:
             gamma = self.getGamma(alpha, beta)
             xi = self.getXi(alpha, beta, episodes)
 
-            if verbouse:
-                print self.__str__()
-                print 'Iteration:', iteration, '\n', 'Log-Likelihood', self.likelihood
-                print '-' * 135
-            else:
-                print 'Iteration:', iteration, '\t\t', 'Log-Likelihood', self.likelihood
+            print 'Iteration:', iteration, '\t\t', 'Log-Likelihood', self.likelihood
 
         return iteration, self.likelihood
-
-
-def main(input_file):
-    print 'Task2'
-    print 'Input fille is:', input_file
-    episodes = read_file(input_file)
-    walls = [(1, 5), (2, 6), (4, 8), (6, 10), (7, 11), (13, 14)]
-    hmm = HMM(rand_init=False, restricted_transitions=True, walls=walls)
-    verbose = False
-    hmm.baum_welch(episodes, verbose)
-    if not verbose:
-        print hmm
-
-
-if __name__ == '__main__':
-    input_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'data', 'task2.dat')
-    if not os.path.exists(input_file):
-        print("Input file doesn't exist!")
-    else:
-        main(input_file)
-1

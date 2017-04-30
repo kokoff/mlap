@@ -31,7 +31,7 @@ def read_input_file(input_file):
 
 def task1(input_file):
     episodes, state_visit_count = read_input_file(input_file)
-    hmm = HMM(use_fractions=True)
+    hmm = HMM()
     E = len(episodes)
     N = hmm.hidden_states
     V = hmm.visible_states
