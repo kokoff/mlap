@@ -28,7 +28,8 @@ def read_file(input_file):
 
 
 class HMM:
-    def __init__(self, rand_init=True, restricted_transitions=False, walls=[], number_of_hidden_states=16, number_of_visible_states=3, use_fractions=False):
+    def __init__(self, rand_init=True, restricted_transitions=False, walls=[], number_of_hidden_states=16,
+                 number_of_visible_states=3, use_fractions=False):
         self.hidden_states = number_of_hidden_states
         self.visible_states = number_of_visible_states
         self.likelihood = 0
@@ -127,6 +128,7 @@ class HMM:
         return rep
 
     def forward(self, episodes):
+        E = len(episodes)  # Number of episodes
         N = self.hidden_states  # Number of hidden states
         alpha = []
         loglik = 0  # Average Log-Likelihood for each episode
@@ -173,7 +175,7 @@ class HMM:
                     F[t] = [0 for i in range(N)]
 
             alpha.append(F)
-            loglik += sumAlpha / len(episodes)
+            loglik += sumAlpha / E
 
         return alpha, loglik
 
@@ -324,7 +326,13 @@ class HMM:
 
     def baum_welch(self, episodes, verbouse=False, tolerance=0.01000000):
         iteration = 0
+
+        # first E-step
         alpha, self.likelihood = self.forward(episodes)
+        beta = self.backward(episodes)
+        gamma = self.getGamma(alpha, beta)
+        xi = self.getXi(alpha, beta, episodes)
+
         oldLikelihood = self.likelihood + 2 * tolerance
 
         if verbouse:
@@ -339,13 +347,17 @@ class HMM:
 
             iteration += 1
             oldLikelihood = self.likelihood
-            beta = self.backward(episodes)
-            gamma = self.getGamma(alpha, beta)
-            xi = self.getXi(alpha, beta, episodes)
+
+            # M-Step
             self.updateInitial(gamma)
             self.updateEmission(gamma, episodes)
             self.updateTransition(gamma, xi)
+
+            # E-step
             alpha, self.likelihood = self.forward(episodes)
+            beta = self.backward(episodes)
+            gamma = self.getGamma(alpha, beta)
+            xi = self.getXi(alpha, beta, episodes)
 
             if verbouse:
                 print self.__str__()
