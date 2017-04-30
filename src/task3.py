@@ -4,12 +4,10 @@ from HMM import read_file
 
 
 def task3(input_file):
-    print 'Task3'
-    print 'Input fille is:', input_file, '\n'
     episodes = read_file(input_file)
 
     for i in range(10):
-        print '\nEM run number', (i)
+        print '\nEM run number', (i + 1)
         hmm = HMM(rand_init=True)
         hmm.baum_welch(episodes)
         print hmm

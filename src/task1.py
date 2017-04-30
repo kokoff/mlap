@@ -84,8 +84,6 @@ def task1(input_file):
 
 if __name__ == '__main__':
     input_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'data', 'task1.dat')
-    print 'Task1'
-    print 'Input file is: ' + input_file
     if not os.path.exists(input_file):
         print("Input file doesn't exist!")
     else:

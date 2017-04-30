@@ -1,9 +1,7 @@
-import os
+import math
 import random
 import re
 import sys
-import math
-from fractions import Fraction
 
 
 def read_file(input_file):
@@ -83,13 +81,13 @@ def normalise_joint_prob(prob, norm=None):
 
 
 class HMM:
-    def __init__(self, rand_init=True, restricted_transitions=False, walls=[], number_of_hidden_states=16,
-                 number_of_visible_states=3):
+    def __init__(self, rand_init=True, number_of_hidden_states=16, number_of_visible_states=3):
         self.hidden_states = number_of_hidden_states
         self.visible_states = number_of_visible_states
-        self.likelihood = 0
+        self.likelihood = None
 
         if rand_init:
+            # Random parameter initialisation
             self.initial = [random.random() for i in range(self.hidden_states)]
             self.initial = normalise_marginal_prob(self.initial)
 
@@ -99,36 +97,12 @@ class HMM:
             self.emission = [[random.random() for i in range(self.hidden_states)] for j in range(self.visible_states)]
             self.emission = normalise_cond_prob(self.emission)
         else:
+            # Uniform parameter initialisation
             self.initial = [1.0 / self.hidden_states for i in range(self.hidden_states)]
             self.transition = [[1.0 / self.hidden_states for i in range(self.hidden_states)] for j in
                                range(self.hidden_states)]
             self.emission = [[1.0 / self.visible_states for i in range(self.hidden_states)] for j in
                              range(self.visible_states)]
-
-        if restricted_transitions:
-            self.transition = [[0.0 for i in range(self.hidden_states)] for j in
-                               range(self.hidden_states)]
-
-            for y in range(4):
-                for x in range(4):
-
-                    pos = x * 4 + y
-                    neighbours = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
-                    forbidden = walls
-                    neighbour_ok = []
-
-                    for n in neighbours:
-                        if -1 < n[0] < 4 and -1 < n[1] < 4 and (n[0] * 4 + n[1], pos) not in forbidden and \
-                                        (pos, n[0] * 4 + n[1]) not in forbidden:
-                            neighbour_ok.append(n)
-
-                    norm = len(neighbour_ok) + 1
-
-                    for n in neighbour_ok:
-                        prob = 1.0 / norm if not rand_init else random.random()
-                        self.transition[n[0] * 4 + n[1]][pos] = prob
-
-            self.transition = normalise_cond_prob(self.transition)
 
     def _prob_repr(self, prob):
         return str(round(float(prob), 4))
