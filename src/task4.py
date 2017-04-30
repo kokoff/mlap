@@ -8,8 +8,8 @@ def task4(input_file):
     print 'Input fille is:', input_file, '\n'
     episodes = read_file(input_file)
     walls = [(1, 5), (2, 6), (4, 8), (6, 10), (7, 11), (13, 14)]
-    hmm = HMM(rand_init=True, restricted_transitions=True, walls=walls)
-    hmm.baum_welch(episodes, False)
+    hmm = HMM(rand_init=False, restricted_transitions=True, walls=walls)
+    hmm.baum_welch(episodes)
     print hmm
 
 if __name__ == '__main__':

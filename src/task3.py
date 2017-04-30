@@ -9,6 +9,7 @@ def task3(input_file):
     episodes = read_file(input_file)
 
     for i in range(10):
+        print '\nEM run number', (i)
         hmm = HMM(rand_init=True)
         hmm.baum_welch(episodes)
         print hmm
