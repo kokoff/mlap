@@ -2,6 +2,7 @@
 \usepackage{comment} % enables the use of multi-line comments (\ifx \fi) 
 \usepackage{lipsum} %This package just generates Lorem Ipsum filler text. 
 \usepackage{fullpage} % changes the margin
+\usepackage{amsmath}
 
 \begin{document}
 \title{\textbf {
@@ -15,17 +16,77 @@ Open Examination \linebreak
 
 \part*{The EM algorithm}
 \section{Task 1}
-Put your Problem statement here! Example of a Citation\cite[p.219]{Robotics}. Here's Another Citation\cite{Flueck}
+%50 
+For each state (square), the algorithm counts the number of times it was a starting state, the number of times it was transitioned to from each other state, and the number of times each reward was awarded in it. Counts are normalised so probabilities sum to 1.    
 
 \section{Task 2}
-\lipsum[2]
+%150
+The implementation of the EM algorithm closely follows the steps outlined in Lecture 19. 
+
+
+\begin{enumerate}
+
+
+\item First the parameters are initialised with uniform distributions. The alpha recursion and the average log-likelihood for each episode are computed iteratively using the forward algorithm.
+\begin{equation}
+\alpha^n(h_n) = p(v_t^n|h_t)\sum\limits_{h_{t-1}}p(h_t|h_{t-1})\alpha^n(h_{t-1}) \qquad \qquad \alpha^n(h_1)=p(v_1^n|h_1)p(h_1)
+\end{equation}
+
+\begin{equation}
+Log likelihood=\frac{1}{N} \sum\limits_{n=1}^N \sum\limits_{t=1}^T \log\sum\limits_{h_t} \alpha(h_t) 
+\end{equation}
+
+\item The beta recursion for each episode is computed iteratively using the backward algorithm.
+\begin{equation}
+\beta^n(h_{t-1})=\sum\limits_{h_t} p(v_t^n|h_t)p(h_t|h_{t-1}) \beta^n(h_t) \qquad \beta^n{h_T}=1
+\end{equation}
+
+\item When computing alpha and beta they are scaled in order to prevent numerical underflow \cite{Rabiner1989}.
+\begin{equation}
+\alpha^n(h_t)= \frac{\alpha^n(h_t)}{\sum\limits_{h_t}\alpha^n(h_t)} \qquad \beta^n(h_t) = \frac{\beta^n(h_t)}{\sum\limits_{h_t}\beta^n(h_t)}
+\end{equation}
+
+\item Hidden state marginals $\gamma$ and pairwise marginals $\xi$ are computed for each episode.
+\begin{equation}
+\gamma^n = p(h_t|v_{1:T}^n) = \frac{\alpha^n(h_t)\beta^n(h_t)}{\sum\limits_{h'_t} \alpha^n(h'_t)\beta^n(h'_t)}
+\end{equation}
+\begin{equation}
+\xi^n = p(h_t,h_{t+1}|v^n_{1:T}) = \frac{
+\alpha^n(h_t) p(v_{t+1}^n|h_{t+1}) p(h_{t+1}|h_t) \beta^n(h_{t+1})} 
+{\sum\limits_{h'_t}\sum\limits_{h'_{t+1}}\alpha^n(h'_t) p(v_{t+1}^n|h'_{t+1}) p(h'_{t+1}|h'_t) \beta^n(h'_{t+1})}
+\end{equation}
+
+\item Initial, transition and emission probabilities are updated using hidden state marginals and pairwise marginals in three separate function. Parameters are normalised in order for probabilities to sum to 1.
+\begin{equation}
+p^{new}(h_1) = \frac{1}{N}\sum\limits_{n=1}^N \gamma^n(h_1) 
+\end{equation}
+\begin{equation}
+p^{new}(h_{t+1}|h_t) = \frac{\sum\limits_{n=1}^N \sum\limits_{t=1}^{T_n-1}\xi^n(h_t,h_{t+1})}
+{ \sum\limits_{n=1}^N \sum\limits_{t=1}^{T_n-1} \sum\limits_{h_{t+1}} \xi^n(h_t,h_{t+1})}
+\end{equation}
+\begin{equation}
+p^{new}(v_t=i|h_t) = \frac{\sum\limits_{n=1}^N \sum\limits_{t=1}^{T_n-1}  I[v_t^n = i] \gamma^n(h_t)}
+{ \sum\limits_{n=1}^N \sum\limits_{t=1}^{T_n-1} \gamma^n(h_t)} 
+\end{equation}
+
+
+
+\item If the change in log-likelihood is smaller than the threashold 0.01, the algorithm terminates, otherwise it proceeds with the next iteration.
+\end{enumerate}
+
 
 \section{Task 3}
-\lipsum[3]
+%200
+\subsection{Difference in log-likelihood for different EM runs}
+The EM algorithm is guaranteed to converge to a local maximum of the likelihood. However it is very susceptible to changes in the initial conditions. When the HMM parameters are initialised randomly at each run, the algorithm converges to the closest local minimum. This local minimum is very likely different from the one reached in the previous run. This means that across different EM runs different values for the log-likelihood are expected.
+
+\subsubsection{Difference in behaviour of EM when using random versus uniform parameter initialisation}
+When using uniform distributions for initial parameters of the HMM, the EM algorithm always achieves the same log-likelihood. Furthermore, the transition and 
 
 \section{Task 4}
-\lipsum[4]
+%20
 
+\pagebreak
 \part*{Manifold learning}
 \section*{Construction/Implementation}
 \lipsum[5]
