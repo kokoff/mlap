@@ -78,10 +78,11 @@ p^{new}(v_t=i|h_t) = \frac{\sum\limits_{n=1}^N \sum\limits_{t=1}^{T_n-1}  I[v_t^
 \section{Task 3}
 %200
 \subsection{Difference in log-likelihood for different EM runs}
-The EM algorithm is guaranteed to converge to a local maximum of the likelihood. However it is very susceptible to changes in the initial conditions. When the HMM parameters are initialised randomly at each run, the algorithm converges to the closest local minimum. This local minimum is very likely different from the one reached in the previous run. This means that across different EM runs different values for the log-likelihood are expected.
+The EM algorithm is guaranteed to converge to a local maximum of the likelihood. This means that the closest local maximum to the initial position, in the search space, is reached at each run.  When parameters are initialised randomly, at each run the algorithm is likely to converge to a different local maximum, compared to previous runs, since the starting conditions are different.
 
 \subsubsection{Difference in behaviour of EM when using random versus uniform parameter initialisation}
-When using uniform distributions for initial parameters of the HMM, the EM algorithm always achieves the same log-likelihood. Furthermore, the transition and 
+When using uniform distributions for initial parameters of the EM algorithm, the transition and initial probabilities do not change. The EM algorithm ignores the fact that we have hidden variables and computes the maximum likelihood estimate of the reward, regardless of the state. This is because the priors for hidden variables are constant.
+On the other hand random initialisation of the algorithm results in evolution of initial and transition probabilities, because we are defining non-constant priors for them.  
 
 \section{Task 4}
 %20
