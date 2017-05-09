@@ -23,7 +23,6 @@ Machine Learning and Applications (MLAP)
 Open Examination \linebreak
 2016-2017}}
 \date{}
-\author{Exam Number: \textbf{Y1403115}}
 \maketitle
 
 
@@ -42,7 +41,7 @@ The implementation of the EM algorithm closely follows the steps outlined in Lec
 
 \item First the parameters are initialised with uniform distributions. The alpha recursion and the average log-likelihood for each episode are computed iteratively using the forward algorithm.
 \begin{equation}
-\alpha^n(h_n) = p(v_t^n|h_t)\sum\limits_{h_{t-1}}p(h_t|h_{t-1})\alpha^n(h_{t-1}) \qquad \qquad \alpha^n(h_1)=p(v_1^n|h_1)p(h_1)
+\alpha^n(h_t) = p(v_t^n|h_t)\sum\limits_{h_{t-1}}p(h_t|h_{t-1})\alpha^n(h_{t-1}) \qquad \qquad \alpha^n(h_1)=p(v_1^n|h_1)p(h_1)
 \end{equation}
 
 \begin{equation}
@@ -104,12 +103,12 @@ Transition probabilities are initialised to 0, for transitions from non neighbou
 
 \pagebreak
 \part*{Manifold learning}
-\section*{Algorithm Descriptions}
+\section{Algorithm Descriptions}
 %10 marks 300 words
 
 \subsection{Isomap}
 %3.33 marks 100 words
-Isomap \cite{Tenenbaum2000} aims to project a set of data points from the high dimensional space, in which they exist, to a lower dimensional representation, while preserving the global geodesic distances (distances between every two points) between them. The algorithm assumes data points are embedded in an intrinsically low dimensional manifold in the higher dimensional space. It starts by constructing a nearest neighbour graph of the data points, in which only data points which are close to each other are connected. Then it computes the euclidean distances between neighbouring data points. After that it computes the distances for all other data points by taking the shortest path between them in the graph. The computed distances are approximate geodesic distances in the manifold. In the last step the algorithm uses the MDS algorithm to find the lower dimensional representation of the data.
+Isomap \cite{Tenenbaum2000} aims to project a set of data points from the high dimensional space, in which they exist, to a lower dimensional representation, while preserving the global geodesic distances between them. The algorithm assumes data points are embedded in an intrinsically low dimensional manifold in the higher dimensional space. It starts by constructing a nearest neighbour graph of the data points, in which only data points which are close to each other are connected. Then it computes the euclidean distances between neighbouring data points. After that it computes the distances for all other data points by taking the shortest path between them in the graph. The computed distances are approximate geodesic distances in the manifold. In the last step the algorithm uses the MDS algorithm to find the lower dimensional representation of the data.
 
 %estimating the geodesic distance between neighbouring data points. 
 %It does this by first finding the aproximate geodesinc dinstances between data points on the manifold. Then uses MDS to project the data into the lower dimensional representation
@@ -118,7 +117,7 @@ Isomap \cite{Tenenbaum2000} aims to project a set of data points from the high d
 
 \subsection{Laplacian Eigenmap}
 %3.33 marks 100 words
-Laplacian Eigenmap \cite{Belkin2003} also projects data to a lower dimensional representation. In contrast to Isomap, Laplacian Eigenmap aims to preserve only local distance information. In the first step of the algorithm, the nearest neighbour graph is computed as in Isomap, with edges between points which are close to each other. The distances between neighbouring points are either set to 1 or computed from the euclidean distances, using a gaussian. The new coordinates for the data points are the eigenvector solutions (in order of their eigenvalues) to the generalised eigenvector problem for the graph Laplacian and diagonal weight matrices. The eigenvector with the smallest eigenvalue is excluded. 
+Laplacian Eigenmap \cite{Belkin2003} also projects data to a lower dimensional representation. In contrast to Isomap, Laplacian Eigenmap aims to preserve only local distance information. In the first step of the algorithm, the nearest neighbour graph is computed as in Isomap, with edges between points which are close to each other. The distances between neighbouring points are either set to 1 or computed from the euclidean distances, using a heat kernel. The new coordinates for the data points are the eigenvector solutions (in order of their eigenvalues) to the generalised eigenvector problem for the graph Laplacian and diagonal weight matrices. The eigenvector with the smallest eigenvalue is excluded. 
 
 
 \subsection{Locality Preserving Projection}
@@ -126,7 +125,7 @@ Laplacian Eigenmap \cite{Belkin2003} also projects data to a lower dimensional r
 Locality Preserving Projection \cite{Xiaofei2005} follows the same steps as Laplacian Eigenmap - constructing a nearest neighbour graph and computing the edge weights(distances). The generalised eigenvector problem is solved for the Laplacian and diagonal weight matrices of the graph, each pre and post multiplied by the matrix of data vectors and matrix of data vectors transposed, respectively. The first $m$ rows of The resulting eigenvector matrix, multiplied by the a data vector, gives the new $m$-dimensional representation of the data vector. In contrast to Laplacian Eigenmap, this algorithm is linear and can be kernelised.
 
 
-\section*{Data proximity graph}
+\section{Data proximity graph}
 %5 marks 200 words
 All three methods assume data lives on an intrinsically low dimensional manifold. In Isomap, a data proximity graph is used to approximate geodesic distances between each two data points on the manifold (global distances). In the other two approaches the graph is used to approximate distances only between points, that are close to each other (local distances). In Isomap the local distances in the graph are euclidean $d_{ij} = ||\vec{x}_i - \vec{x}_j||$. In the other two approaches a heat kernel is used for local distances $d_{ij} = \exp{\Big(-\frac{||\vec{x}_i - \vec{x}_j||^2}{t}	\Big)}$ or they are simply set to 1.
 
